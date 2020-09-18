@@ -222,7 +222,7 @@ ui <- dashboardPage(
                                                    column(width = 6, align = "center",
                                                           sliderInput("effoThre", "Effort threshold:",
                                                                       min = 0, max = pretty(max(effoAgg$SwepArea$value[effoAgg$SwepArea$variable == "AvgTot"]))[2],
-                                                                      value = 1, step = 0.1))),
+                                                                      value = c(1, 10), step = 0.1))),
                                           plotOutput("effoDist", height = "150px"),
                                           plotOutput("effoBoxp", height = "150px")),
                                    column(width = 6, leafletOutput("mapEffThr"))),
@@ -238,7 +238,7 @@ ui <- dashboardPage(
                                           sliderInput(inputId = "uwcThre",
                                                       label = "UWC threshold:",
                                                       min = 0, max = 3,
-                                                      value = 0, step = 1)),
+                                                      value = c(1,2), step = 1)),
                                    column(width = 6, align = "center",
                                           leafletOutput("mapUWCThr"))),
                           hr(),
@@ -855,19 +855,19 @@ server <- function(input, output, session) {
                       'Nominal Effort' = "NomiEffo")
     threValu$value <- 0
     if(outMetr == "SwepArea"){
-      updateSliderInput(session, "effoThre", value = 0,
+      updateSliderInput(session, "effoThre", value = c(1, 10),
                         min = 0, max = pretty(quantile(x = effoAgg$SwepArea$value, 0.99))[2],
                         step = 0.1)
     } else if (outMetr == "FishDays") {
-      updateSliderInput(session, "effoThre", value = 0,
+      updateSliderInput(session, "effoThre", value = c(1, 10),
                         min = 0, max = pretty(quantile(x = effoAgg$FishDays$value, 0.99))[2],
                         step = 0.1)
     } else if (outMetr == "FishHour") {
-      updateSliderInput(session, "effoThre", value = 0,
+      updateSliderInput(session, "effoThre", value = c(1, 10),
                         min = 0, max = pretty(quantile(x = effoAgg$FishHour$value, 0.99))[2],
                         step = 0.1)
     } else if (outMetr == "NomiEffo") {
-      updateSliderInput(session, "effoThre", value = 0,
+      updateSliderInput(session, "effoThre", value = c(1, 10),
                         min = 0, max = pretty(quantile(x = effoAgg$NomiEffo$value, 0.99))[2],
                         step = 1)
     }
@@ -924,7 +924,7 @@ server <- function(input, output, session) {
   selThrAvg <- reactive({
     curAvgSet <- selAggData()
     outAvg <- effoAgg[[curAvgSet]][effoAgg[[curAvgSet]]$variable == "AvgTot", "value"]
-    outAvg[outAvg < threValu$value] <- NA
+    outAvg[outAvg >= max(threValu$value) | outAvg <= min(threValu$value)] <- NA
     return(outAvg)
   })
   selAvgpal <- reactive({
@@ -988,9 +988,10 @@ server <- function(input, output, session) {
     curSpe <- selUWCspe()
     curPal <- selUWCpal()
     outCol <- curPal(curSpe@data$GRIDCODE)
-    outCol[curSpe@data$GRIDCODE < input$uwcThre] <- "#00000000"
+    outCol[!curSpe@data$GRIDCODE %in% seq(from = min(input$uwcThre), to = max(input$uwcThre), by = 1)] <- "#00000000"
     leafletProxy("mapUWCThr") %>%
-      removeShape(layerId = paste0("UWC", 1:length(leafletProxy("mapUWCThr")$x$calls[[2]]$args[[4]]))) %>%
+      # removeShape(layerId = paste0("UWC", 1:length(leafletProxy("mapUWCThr")$x$calls[[2]]$args[[4]]))) %>%
+      clearShapes() %>%
       addPolygons(data = curSpe, weight = 0.5, stroke = TRUE,
                   fillColor = outCol, group = "UWC",
                   color = curPal(0), fill = TRUE , fillOpacity = 0.5,
@@ -1061,8 +1062,8 @@ server <- function(input, output, session) {
   observeEvent(input$getOverlap, {
     curSpe <- isolate(selUWCspe())
     curAvg <- isolate(selThrAvg())
-    gridSel <- areaGrid[which(curAvg > threValu$value),]
-    speSel <- curSpe[curSpe@data$GRIDCODE >= isolate(input$uwcThre),]
+    gridSel <- areaGrid[which(curAvg <= max(threValu$value) | curAvg >= min(threValu$value)),]
+    speSel <- curSpe[curSpe@data$GRIDCODE %in% seq(from = min(input$uwcThre), to = max(input$uwcThre), by = 1),]
     polDisag <- gIntersection(gridSel,
                               speSel,
                               drop_lower_td = TRUE)
@@ -1109,8 +1110,8 @@ server <- function(input, output, session) {
     content = function(file) {
       curSpe <- isolate(selUWCspe())
       curAvg <- isolate(selThrAvg())
-      gridSel <- areaGrid[which(curAvg > threValu$value),]
-      speSel <- curSpe[curSpe@data$GRIDCODE >= isolate(input$uwcThre),]
+      gridSel <- areaGrid[which(curAvg <= max(threValu$value) | curAvg >= min(threValu$value)),]
+      speSel <- curSpe[curSpe@data$GRIDCODE %in% seq(from = min(input$uwcThre), to = max(input$uwcThre), by = 1),]
       polDisag <- gIntersection(gridSel,
                                 speSel,
                                 drop_lower_td = TRUE)
