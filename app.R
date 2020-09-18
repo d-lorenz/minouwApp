@@ -1012,7 +1012,8 @@ server <- function(input, output, session) {
                   fillColor = pal_uwc_skj(skjMap@data$GRIDCODE),
                   color = pal_uwc_skj(0),
                   fillOpacity = 0.5, group = "UWC", fill = TRUE) %>%
-      addLegend(pal = colorFactor("Greys", domain = 1:3),
+      addLegend(title = "Persistence Index",
+                pal = colorFactor("Greys", domain = 1:3),
                 values = 1:3,
                 position = "bottomright") %>%
       setView(lng = mapCoo[1], lat = mapCoo[2], zoom = 9) %>%
@@ -1035,7 +1036,8 @@ server <- function(input, output, session) {
                   color = pal_uwc_skj(skjMap@data$GRIDCODE)[5], fillOpacity = 0.5, group = "SKJ", fill = TRUE) %>%
       addPolygons(data = ttlMap, weight = 0.5, stroke = TRUE, fillColor = pal_uwc_ttl(ttlMap@data$GRIDCODE),
                   color = pal_uwc_ttl(ttlMap@data$GRIDCODE)[5], fillOpacity = 0.5, group = "TTL", fill = TRUE) %>%
-      addLegend(pal = colorFactor("Greys", domain = 1:3),
+      addLegend(title = "Persistence Index",
+                pal = colorFactor("Greys", domain = 1:3),
                 values = 1:3,
                 position = "bottomright") %>%
       setView(lng = mapCoo[1], lat = mapCoo[2], zoom = 9) %>%
@@ -1043,7 +1045,12 @@ server <- function(input, output, session) {
         baseGroups = c("OSM (default)", "Esri World", "Toner Lite"),
         overlayGroups = c("SKJ", "TTL"),
         options = layersControlOptions(collapsed = FALSE)
-      ) %>% hideGroup(c("TTL"))
+      )  %>%
+      htmlwidgets::onRender("
+        function() {
+            $('.leaflet-control-layers-overlays').prepend('<label style=\"text-align:center\">Species</label>');
+        }
+    ") %>% hideGroup(c("TTL"))
   })
   
   
